@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+env/
+*.env
+
+# Flask instance folder
+instance/
+
+# Database
+*.db
+
+# Pip vendor / migrations you don't want
+copies/diary_copy_20260330_104216/migrations/versions/pip/_vendor/
+
+# IDE/editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

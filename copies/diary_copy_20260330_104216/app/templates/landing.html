@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dear Diary</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<!-- HEADER -->
+<header class="flex justify-between items-center px-10 py-5 bg-white shadow-md">
+    <div class="text-2xl font-bold text-rose-500">Dear Diary</div>
+    <nav class="space-x-6 font-medium">
+        <a href="{{url_for('auth.signup')}}" class="hover:text-rose-500 transition">Signup</a>
+        <a href="{{url_for('auth.login')}}" class="hover:text-rose-500 transition">Login</a>
+        <a href="{{url_for('auth.about')}}" class="hover:text-rose-500 transition">About Us</a>
+    </nav>
+</header>
+
+<!-- HERO SECTION -->
+<div class="flex flex-col justify-center items-center min-h-[70vh]">
+
+    <!-- ANIMATED CARD -->
+    <div class="card flex justify-center mt-10">
+        <div
+            class="relative bg-black w-[300px] sm:w-[350px] group transition-all duration-700 aspect-video flex items-center justify-center"
+        >
+            <!-- INNER CONTENT -->
+            <div
+                class="transition-all flex flex-col items-center py-5 justify-start duration-300 group-hover:duration-1000 bg-white w-full h-full absolute group-hover:-translate-y-16"
+            >
+                <p class="text-xl sm:text-2xl font-semibold text-gray-500 font-serif">
+                    Welcome
+                </p>
+                <p class="px-6 text-[11px] sm:text-[13px] text-gray-700 text-center">
+                    It’s so nice that you had the time to view this idea
+                </p>
+                <p class="font-serif text-[11px] sm:text-[13px] text-gray-700">
+                    Wishing you a fantastic day ahead!
+                </p>
+            </div>
+
+            <!-- SEAL BUTTON -->
+            <button
+                class="seal bg-rose-500 text-red-800 w-12 aspect-square rounded-full z-40 text-[9px] flex items-center justify-center font-semibold 
+                [clip-path:polygon(50%_0%,_80%_10%,_100%_35%,_100%_70%,_80%_90%,_50%_100%,_20%_90%,_0%_70%,_0%_35%,_20%_10%)] 
+                group-hover:opacity-0 transition-all duration-1000 group-hover:scale-0 group-hover:rotate-180 border-4 border-rose-900"
+            >
+                Dear Diary
+            </button>
+
+            <!-- ENVELOPE ANIMATION PARTS -->
+            <div class="tp transition-all duration-1000 group-hover:duration-100 bg-neutral-800 absolute group-hover:[clip-path:polygon(50%_0%,_100%_0,_0_0)] w-full h-full [clip-path:polygon(50%_50%,_100%_0,_0_0)]"></div>
+
+            <div class="lft transition-all duration-700 absolute w-full h-full bg-neutral-900 [clip-path:polygon(50%_50%,_0_0,_0_100%)]"></div>
+
+            <div class="rgt transition-all duration-700 absolute w-full h-full bg-neutral-800 [clip-path:polygon(50%_50%,_100%_0,_100%_100%)]"></div>
+
+            <div class="btm transition-all duration-700 absolute w-full h-full bg-neutral-900 [clip-path:polygon(50%_50%,_100%_100%,_0_100%)]"></div>
+        </div>
+    </div>
+
+    <!-- CTA BUTTON -->
+    <a href="{{url_for('auth.signup')}}" 
+       class="mt-8 px-6 py-3 bg-rose-500 text-white rounded-lg shadow-lg hover:bg-rose-600 transition">
+        Get Started
+    </a>
+
+</div>
+
+<!-- DESCRIPTION -->
+<div class="max-w-3xl mx-auto text-center px-6 pb-12">
+    <p class="text-gray-700 text-lg leading-relaxed">
+        Welcome to <span class="text-rose-500 font-semibold">Dear Diary</span> — 
+        a smarter way to capture your daily life.
+        This isn’t just a diary. It’s your personal AI companion that helps you 
+        track experiences, improve habits, and grow every single day.
+    </p>
+</div>
+
+<!-- FOOTER -->
+<footer class="text-center py-4 text-gray-500 text-sm">
+    © 2026 Dear Diary. All rights reserved.
+</footer>
+
+</body>
+</html>
