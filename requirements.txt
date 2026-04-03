@@ -6,3 +6,4 @@ Flask-Mail
 Flask-Migrate
 Flask-Limiter
 authlib
+python-dotenv
