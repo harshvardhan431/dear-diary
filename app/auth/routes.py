@@ -225,7 +225,7 @@ def github_callback():
     if not email:
         flash("GitHub email not found")
         return redirect(url_for("auth.login"))
-
+ 
     name = user_info.get("login")
 
     # Same logic as Google

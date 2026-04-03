@@ -1,6 +1,8 @@
 Flask
 gunicorn
+Flask-SQLAlchemy
 Flask-Login
 Flask-Mail
-requests
-python-dotenv
+Flask-Migrate
+Flask-Limiter
+authlib
