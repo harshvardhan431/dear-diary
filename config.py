@@ -8,3 +8,12 @@ class Config:
     MAIL_USERNAME = 'harshvardhansinghchouhan431@gmail.com'
     MAIL_PASSWORD = 'wpqnlxqiiodhywjf'
     MAIL_DEFAULT_SENDER = 'harshvardhansinghchouhan431@gmail.com'  
+
+"""
+python -m venv venv
+venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install flask flask_sqlalchemy flask_login flask_mail flask_migrate flask_limiter authlib gunicorn
+pip freeze > requirements.txt
+deactivate
+"""
