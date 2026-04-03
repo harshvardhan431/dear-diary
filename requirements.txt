@@ -7,3 +7,4 @@ Flask-Migrate
 Flask-Limiter
 authlib
 python-dotenv
+python_wtf
