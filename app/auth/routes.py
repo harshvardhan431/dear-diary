@@ -64,6 +64,7 @@ def signup():
             print("✅ USER SAVED")
 
             # 🔹 Generate token & link
+            current_app.logger.info("📧 SENDING MAIL...")
             token = generate_email_token(user.email)
             link = url_for("auth.verify_email", token=token, _external=True)
 
@@ -81,6 +82,7 @@ def signup():
                 print("✅ MAIL SENT")
 
             except Exception as mail_error:
+                current_app.logger.error(f"❌ MAIL ERROR: {mail_error}")
                 print("❌ MAIL ERROR:", mail_error)
                 flash("Account created, but email not sent.", "warning")
 
@@ -89,6 +91,7 @@ def signup():
 
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"🔥 FULL ERROR: {e}")
             print("🔥 FULL ERROR:", e)
             flash("Something went wrong. Please try again.", "danger")
 
