@@ -1,11 +1,6 @@
-Flask==2.3.3
-Flask-Dance==7.1.0         # for Google & GitHub OAuth
-Flask-Login==0.6.3
-Flask-Mail==0.9.1
-Flask-WTF==1.1.1
-WTForms==3.0.1
-python-dotenv==1.0.0
-SQLAlchemy==2.0.20          # if using SQLAlchemy ORM
-Flask-Migrate==4.0.4        # for migrations
-gunicorn==21.2.0             # required for Render to run the app
-requests==2.31.0             # used by OAuth packages
+Flask
+gunicorn
+Flask-Login
+Flask-Mail
+requests
+python-dotenv
