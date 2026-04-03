@@ -5,6 +5,7 @@ Flask-Login
 Flask-Mail
 Flask-Migrate
 Flask-Limiter
+FLask-cache
 authlib
 python-dotenv
 gunicorn
