@@ -32,71 +32,79 @@ def landing():
 def signup():
     form = SignupForm()
 
-    print("SIGNUP ROUTE HIT")
-    print("METHOD:", request.method)
-    print("FORM DATA:", request.form)
-    print("FORM ERRORS:", form.errors)
+    current_app.logger.info("🚀 SIGNUP ROUTE HIT")
+    current_app.logger.info(f"METHOD: {request.method}")
+    current_app.logger.info(f"FORM DATA: {request.form}")
+    current_app.logger.info(f"FORM ERRORS: {form.errors}")
 
     if form.validate_on_submit():
         try:
-            # 🔹 Check duplicate username
+            current_app.logger.info("✅ FORM VALIDATED")
+
+            # Check duplicate username
             existing_user = User.query.filter_by(username=form.name.data).first()
             if existing_user:
+                current_app.logger.warning("⚠️ Username already exists")
                 flash("Username already exists. Try another.", "danger")
                 return redirect(url_for("auth.signup"))
 
-            # 🔹 Check duplicate email
+            # Check duplicate email
             existing_email = User.query.filter_by(email=form.email.data).first()
             if existing_email:
+                current_app.logger.warning("⚠️ Email already exists")
                 flash("Email already registered.", "danger")
                 return redirect(url_for("auth.signup"))
 
-            # 🔹 Create user
+            # Create user
             user = User(
                 username=form.name.data.strip(),
                 age=form.age.data,
                 email=form.email.data,
                 password=hash_password(form.password.data),
             )
+            current_app.logger.info(f"👤 USER OBJECT CREATED: {user}")
 
             db.session.add(user)
+            current_app.logger.info("📦 USER ADDED TO DB")
+
             db.session.commit()
-            print("✅ USER SAVED")
+            current_app.logger.info("✅ USER COMMITTED TO DB")
 
-            # 🔹 Generate token & link
-            current_app.logger.info("📧 SENDING MAIL...")
+            # Token
             token = generate_email_token(user.email)
-            link = url_for("auth.verify_email", token=token, _external=True)
+            current_app.logger.info(f"🔑 TOKEN GENERATED: {token}")
 
-            # 🔹 Send email (separate try block)
+            link = url_for("auth.verify_email", token=token, _external=True)
+            current_app.logger.info(f"🔗 VERIFICATION LINK: {link}")
+
+            # Mail
             try:
                 msg = Message(
                     subject="Verify your email",
-                    sender=current_app.config['MAIL_USERNAME'],  # safer
+                    sender=current_app.config['MAIL_USERNAME'],
                     recipients=[user.email],
                     body=f"Click to verify your email: {link}"
                 )
 
-                print("📧 SENDING MAIL...")
+                current_app.logger.info("📧 SENDING MAIL...")
                 mail.send(msg)
-                print("✅ MAIL SENT")
+                current_app.logger.info("✅ MAIL SENT")
 
             except Exception as mail_error:
                 current_app.logger.error(f"❌ MAIL ERROR: {mail_error}")
-                print("❌ MAIL ERROR:", mail_error)
-                flash("Account created, but email not sent.", "warning")
 
             flash("Account created successfully! Please verify your email.", "success")
+            current_app.logger.info("🎉 REDIRECTING TO EMAIL PAGE")
+
             return redirect(url_for("auth.email"))
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"🔥 FULL ERROR: {e}")
-            print("🔥 FULL ERROR:", e)
             flash("Something went wrong. Please try again.", "danger")
 
     else:
-        print("❌ FORM VALIDATION FAILED:", form.errors)
+        current_app.logger.warning(f"❌ FORM VALIDATION FAILED: {form.errors}")
 
     return render_template("signup.html", form=form)
    #user signup and his details are stored in db then if the user click on the link then is_verified column is put to true .
