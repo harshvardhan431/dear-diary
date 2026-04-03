@@ -85,7 +85,7 @@ def signup():
                 flash("Account created, but email not sent.", "warning")
 
             flash("Account created successfully! Please verify your email.", "success")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("auth.email"))
 
         except Exception as e:
             db.session.rollback()
@@ -331,6 +331,10 @@ def monthly(year, month):
     ).order_by(Diary.created_at.desc()).all()
 
     return render_template("monthly_book.html", diaries=diaries, year=year, month=month)
+
+@bp.route("/email",methods=["GET"])
+def email():
+    return render_template("check_email.html")
 """
 @bp.route("/profile")
 @login_required
