@@ -17,6 +17,7 @@ import uuid
 import os
 import logging
 from datetime import datetime
+import traceback
 
 @login_manager.user_loader #this decorator is used to restore the user data stored in database
 def load_user(user_id):
@@ -126,84 +127,96 @@ def verify_email(token):
 
 
 
+# ---------------- GOOGLE LOGIN ----------------
 @bp.route("/login/google")
 def login_google():
-    if not current_app.config.get("GOOGLE_CLIENT_ID") or not current_app.config.get("GOOGLE_CLIENT_SECRET"):
-        flash("Google login is not configured yet.", "danger")
+    try:
+        if not current_app.config.get("GOOGLE_CLIENT_ID") or not current_app.config.get("GOOGLE_CLIENT_SECRET"):
+            flash("Google login is not configured.", "danger")
+            return redirect(url_for("auth.login"))
+
+        redirect_uri = url_for("auth.google_callback", _external=True)
+        current_app.logger.info(f"Redirect URI: {redirect_uri}")
+
+        # Generate nonce
+        nonce = secrets.token_urlsafe(16)
+        session["google_nonce"] = nonce
+
+        return oauth.google.authorize_redirect(
+            redirect_uri=redirect_uri,
+            nonce=nonce
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Login Google Error: {e}")
+        current_app.logger.error(traceback.format_exc())
+        flash("Something went wrong during Google login.", "danger")
         return redirect(url_for("auth.login"))
 
-    redirect_uri = url_for("auth.google_callback", _external=True)
 
-    # Generate secure nonce
-    nonce = secrets.token_urlsafe(16)
-
-    # Store nonce in session
-    session["google_nonce"] = nonce
-
-    return oauth.google.authorize_redirect(
-        redirect_uri,
-        nonce=nonce
-    )
-
+# ---------------- GOOGLE CALLBACK ----------------
 @bp.route("/login/google/callback")
 def google_callback():
     try:
-        # Get token from Google
-        token = oauth.google.authorize_access_token() 
-    except Exception as e:
-        current_app.logger.error(f"Google authorize_access_token failed: {e}")
-        flash("Google authentication failed. Please try again.")
-        return redirect(url_for("auth.login"))
+        # Step 1: Get token
+        token = oauth.google.authorize_access_token()
+        current_app.logger.info(f"Token received: {token}")
 
-    # Retrieve and remove nonce from session
-    nonce = session.pop("google_nonce", None)
+        # Step 2: Get nonce from session
+        nonce = session.pop("google_nonce", None)
+        if not nonce:
+            flash("Session expired. Try again.", "warning")
+            return redirect(url_for("auth.login"))
 
-    if nonce is None:
-        flash("Session expired. Please try again.")
-        return redirect(url_for("auth.login"))
-
-    try:
-        # Verify ID token (signature, expiry, audience, nonce)
+        # Step 3: Parse ID token
         user_info = oauth.google.parse_id_token(token, nonce=nonce)
-    except Exception as e:
-        current_app.logger.error(f"ID token parsing failed: {e}")
-        flash("Invalid authentication token.")
-        return redirect(url_for("auth.login"))
+        current_app.logger.info(f"User info: {user_info}")
 
-    # Ensure email exists
-    email = user_info.get("email")
-    if not email:
-        flash("Google account does not provide an email.")
-        return redirect(url_for("auth.login"))
+        # Step 4: Validate email
+        email = user_info.get("email")
+        if not email:
+            flash("Google account has no email.", "danger")
+            return redirect(url_for("auth.login"))
 
-    # Ensure email is verified
-    if not user_info.get("email_verified"):
-        flash("Please verify your Google email before logging in.")
-        return redirect(url_for("auth.login"))
+        if not user_info.get("email_verified"):
+            flash("Google email not verified.", "warning")
+            return redirect(url_for("auth.login"))
 
-    name = user_info.get("name", "Google User")
+        name = user_info.get("name", "Google User")
 
-    # Check if user already exists
-    user = User.query.filter_by(email=email).first()
+        # Step 5: Find or create user
+        user = User.query.filter_by(email=email).first()
 
-    if not user:
-        user = User(
-            username=name,
-            email=email,
-            password=None, # Google users don't use passwords
-            is_verified=True
-        )
-        db.session.add(user)
-        db.session.commit()
-    else:
-        if not user.is_verified:
-            user.is_verified = True
+        if not user:
+            user = User(
+                username=name,
+                email=email,
+                password=None,
+                is_verified=True
+            )
+            db.session.add(user)
             db.session.commit()
+            current_app.logger.info("New Google user created")
 
-    login_user(user)
+        else:
+            if not user.is_verified:
+                user.is_verified = True
+                db.session.commit()
 
-    flash("Successfully logged in with Google.")
-    return redirect(url_for("auth.home"))
+        # Step 6: Login
+        login_user(user)
+        flash("Logged in successfully with Google", "success")
+
+        return redirect(url_for("auth.home"))
+
+    except Exception as e:
+        current_app.logger.error(f"Google Callback Error: {e}")
+        current_app.logger.error(traceback.format_exc())
+        flash("Google authentication failed.", "danger")
+        return redirect(url_for("auth.login"))
+🔥 What you improved (read this carefully)
+1. Proper error handling
+Every critical block is wrapped
 
 @bp.route("/login/github") 
 def login_github():
