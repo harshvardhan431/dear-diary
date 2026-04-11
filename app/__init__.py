@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv #reades varible from .env file and puts them to environment folder 
 from flask import Flask, flash, redirect, url_for
 
 from app.extension import cache, csrf, db, limiter, login_manager, mail, migrate, oauth
@@ -11,11 +11,12 @@ from app.config_log import setup_logger
 from config import Config
 from app import models  # noqa: F401
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT_DIR / ".env", override=True)
 
+ROOT_DIR = Path(__file__).resolve().parent.parent # this gives the root folder of project
+load_dotenv(ROOT_DIR / ".env", override=True) #loads the environment variable from your env file
+#here override =true means if variable already exist replace it with this one if secret key or any other varibale are chagnes then this lines help to override it 
 
-def create_app():
+def create_app(): #this is application factory where app is created inside the function
     app = Flask(__name__)
     setup_logger(app)
     app.config.from_object(Config)
@@ -42,6 +43,10 @@ def create_app():
 
     app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "static", "profile_pics")
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{ROOT_DIR / 'instance' / 'data.db'}"
+    """
+    sqlite:///relative/path.db
+sqlite:////absolute/path.db
+    """
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     try:
