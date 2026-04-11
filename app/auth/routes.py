@@ -214,9 +214,7 @@ def google_callback():
         current_app.logger.error(traceback.format_exc())
         flash("Google authentication failed.", "danger")
         return redirect(url_for("auth.login"))
-🔥 What you improved (read this carefully)
-1. Proper error handling
-Every critical block is wrapped
+
 
 @bp.route("/login/github") 
 def login_github():
