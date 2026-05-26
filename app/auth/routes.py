@@ -8,6 +8,7 @@ from flask_mail import Message
 from app.extension import mail,oauth,limiter,cache
 from app.forms import SignupForm,LoginupForm,DiaryForm
 from app.models import State, City, User,Diary,Profile
+from app.auth.service import send_email
 from app.extension import db,login_manager
 from flask_login import login_remembered,login_required,logout_user,login_user,current_user
 from flask import flash
@@ -17,6 +18,7 @@ import uuid
 import os
 import logging
 from datetime import datetime
+import traceback
 
 @login_manager.user_loader #this decorator is used to restore the user data stored in database
 def load_user(user_id):
@@ -32,170 +34,199 @@ def landing():
 def signup():
     form = SignupForm()
 
-    print("SIGNUP ROUTE HIT")
-    print("METHOD:", request.method)
-    print("FORM DATA:", request.form)
-    print("FORM ERRORS:", form.errors)
+    current_app.logger.info("🚀 SIGNUP ROUTE HIT")
+    current_app.logger.info(f"METHOD: {request.method}")
+    current_app.logger.info(f"FORM DATA: {request.form}")
+    current_app.logger.info(f"FORM ERRORS: {form.errors}")
 
     if form.validate_on_submit():
         try:
-            # 🔹 Check duplicate username
-            existing_user = User.query.filter_by(username=form.name.data).first()
-            if existing_user:
-                flash("Username already exists. Try another.", "danger")
-                return redirect(url_for("auth.signup"))
+            current_app.logger.info("✅ FORM VALIDATED")
 
-            # 🔹 Check duplicate email
+            # Check duplicate username
+           
+
+            # Check duplicate email
             existing_email = User.query.filter_by(email=form.email.data).first()
-            if existing_email:
-                flash("Email already registered.", "danger")
-                return redirect(url_for("auth.signup"))
 
-            # 🔹 Create user
+            if existing_email:
+                if existing_email.is_verified:
+                    flash("Email already registered. Please login.", "danger")
+                    return redirect(url_for("auth.login"))
+                else:
+                    # resend verification instead of blocking
+                    token = generate_email_token(existing_email.email)
+                    link = url_for("auth.verify_email", token=token, _external=True)
+
+                    try:
+                        send_email(link, existing_email.email)
+                        current_app.logger.info("✅ VERIFICATION MAIL RESENT")
+                        return redirect(url_for("auth.email"))
+                    except Exception as mail_error:
+                        current_app.logger.error(f"❌ MAIL ERROR: {mail_error}")
+
+                    flash("Account exists but not verified. Check your email.", "warning")
+                    return redirect(url_for("auth.email"))
+
+            # Create user
             user = User(
                 username=form.name.data.strip(),
                 age=form.age.data,
                 email=form.email.data,
                 password=hash_password(form.password.data),
             )
+            current_app.logger.info(f"👤 USER OBJECT CREATED: {user}")
 
             db.session.add(user)
+            current_app.logger.info("📦 USER ADDED TO DB")
             db.session.commit()
-            print("✅ USER SAVED")
-
-            # 🔹 Generate token & link
-            current_app.logger.info("📧 SENDING MAIL...")
+            
+            # Token
             token = generate_email_token(user.email)
+            current_app.logger.info(f"🔑 TOKEN GENERATED: {token}")
+
             link = url_for("auth.verify_email", token=token, _external=True)
+            current_app.logger.info(f"🔗 VERIFICATION LINK: {link}")
 
-            # 🔹 Send email (separate try block)
+            # Mail
             try:
-                msg = Message(
-                    subject="Verify your email",
-                    sender=current_app.config['MAIL_USERNAME'],  # safer
-                    recipients=[user.email],
-                    body=f"Click to verify your email: {link}"
-                )
-
-                print("📧 SENDING MAIL...")
-                mail.send(msg)
-                print("✅ MAIL SENT")
+                send_email(link, user.email)
+                current_app.logger.info("✅ MAIL SENT")
 
             except Exception as mail_error:
                 current_app.logger.error(f"❌ MAIL ERROR: {mail_error}")
-                print("❌ MAIL ERROR:", mail_error)
-                flash("Account created, but email not sent.", "warning")
 
             flash("Account created successfully! Please verify your email.", "success")
+            current_app.logger.info("🎉 REDIRECTING TO EMAIL PAGE")
+
             return redirect(url_for("auth.email"))
 
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"🔥 FULL ERROR: {e}")
-            print("🔥 FULL ERROR:", e)
             flash("Something went wrong. Please try again.", "danger")
 
     else:
-        print("❌ FORM VALIDATION FAILED:", form.errors)
+        current_app.logger.warning(f"❌ FORM VALIDATION FAILED: {form.errors}")
 
     return render_template("signup.html", form=form)
+
    #user signup and his details are stored in db then if the user click on the link then is_verified column is put to true .
    #if user account is delted or admin deletes it before user verifying then still he can't sign in 
 
 @bp.route("/verify-email/<token>")
 def verify_email(token):
-    email = verify_email_token(token) #this line deocdes the email which was encode in the above code,checks expiry,signature
+    email = verify_email_token(token)
 
     if not email:
         return "Invalid or expired token"
 
     user = User.query.filter_by(email=email).first()
-    user.is_verified = True
-    db.session.commit()
-    login_user(user) #here the user is autologin after clicking on the verification link,it set user is_authenticated=true
- #this tells flask that user is verified log him in and his id is stored in session so whenever @login_requiered is used we can retreicve that from session 
-    return "Email verified"
-
-
-
-@bp.route("/login/google")
-def login_google():
-    if not current_app.config.get("GOOGLE_CLIENT_ID") or not current_app.config.get("GOOGLE_CLIENT_SECRET"):
-        flash("Google login is not configured yet.", "danger")
-        return redirect(url_for("auth.login"))
-
-    redirect_uri = url_for("auth.google_callback", _external=True)
-
-    # Generate secure nonce
-    nonce = secrets.token_urlsafe(16)
-
-    # Store nonce in session
-    session["google_nonce"] = nonce
-
-    return oauth.google.authorize_redirect(
-        redirect_uri,
-        nonce=nonce
-    )
-
-@bp.route("/login/google/callback")
-def google_callback():
-    try:
-        # Get token from Google
-        token = oauth.google.authorize_access_token() 
-    except Exception as e:
-        current_app.logger.error(f"Google authorize_access_token failed: {e}")
-        flash("Google authentication failed. Please try again.")
-        return redirect(url_for("auth.login"))
-
-    # Retrieve and remove nonce from session
-    nonce = session.pop("google_nonce", None)
-
-    if nonce is None:
-        flash("Session expired. Please try again.")
-        return redirect(url_for("auth.login"))
-
-    try:
-        # Verify ID token (signature, expiry, audience, nonce)
-        user_info = oauth.google.parse_id_token(token, nonce=nonce)
-    except Exception as e:
-        current_app.logger.error(f"ID token parsing failed: {e}")
-        flash("Invalid authentication token.")
-        return redirect(url_for("auth.login"))
-
-    # Ensure email exists
-    email = user_info.get("email")
-    if not email:
-        flash("Google account does not provide an email.")
-        return redirect(url_for("auth.login"))
-
-    # Ensure email is verified
-    if not user_info.get("email_verified"):
-        flash("Please verify your Google email before logging in.")
-        return redirect(url_for("auth.login"))
-
-    name = user_info.get("name", "Google User")
-
-    # Check if user already exists
-    user = User.query.filter_by(email=email).first()
 
     if not user:
-        user = User(
-            username=name,
-            email=email,
-            password=None, # Google users don't use passwords
-            is_verified=True
-        )
-        db.session.add(user)
-        db.session.commit()
-    else:
-        if not user.is_verified:
-            user.is_verified = True
-            db.session.commit()
+        return "User no longer exists"
+
+    if user.is_verified:
+        flash("Already verified. Please login.", "info")
+        return redirect(url_for("auth.login"))
+
+    user.is_verified = True
+    db.session.commit()
 
     login_user(user)
 
-    flash("Successfully logged in with Google.")
     return redirect(url_for("auth.home"))
+
+
+
+# ---------------- GOOGLE LOGIN ----------------
+@bp.route("/login/google")
+def login_google():
+    try:
+        if not current_app.config.get("GOOGLE_CLIENT_ID") or not current_app.config.get("GOOGLE_CLIENT_SECRET"):
+            flash("Google login is not configured.", "danger")
+            return redirect(url_for("auth.login"))
+
+        redirect_uri = url_for("auth.google_callback", _external=True)
+        current_app.logger.info(f"Redirect URI: {redirect_uri}")
+
+        # Generate nonce
+        nonce = secrets.token_urlsafe(16)
+        session["google_nonce"] = nonce
+
+        return oauth.google.authorize_redirect(
+            redirect_uri=redirect_uri,
+            nonce=nonce
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Login Google Error: {e}")
+        current_app.logger.error(traceback.format_exc())
+        flash("Something went wrong during Google login.", "danger")
+        return redirect(url_for("auth.login"))
+
+
+# ---------------- GOOGLE CALLBACK ----------------
+@bp.route("/login/google/callback")
+def google_callback():
+    try:
+        # Step 1: Get token
+        token = oauth.google.authorize_access_token()
+        current_app.logger.info(f"Token received: {token}")
+
+        # Step 2: Get nonce from session
+        nonce = session.pop("google_nonce", None)
+        if not nonce:
+            flash("Session expired. Try again.", "warning")
+            return redirect(url_for("auth.login"))
+
+        # Step 3: Parse ID token
+        user_info = oauth.google.parse_id_token(token, nonce=nonce)
+        current_app.logger.info(f"User info: {user_info}")
+
+        # Step 4: Validate email
+        email = user_info.get("email")
+        if not email:
+            flash("Google account has no email.", "danger")
+            return redirect(url_for("auth.login"))
+
+        if not user_info.get("email_verified"):
+            flash("Google email not verified.", "warning")
+            return redirect(url_for("auth.login"))
+
+        name = user_info.get("name", "Google User")
+
+        # Step 5: Find or create user
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            user = User(
+                username=name,
+                email=email,
+                password=None,
+                is_verified=True
+            )
+            db.session.add(user)
+            db.session.commit()
+            current_app.logger.info("New Google user created")
+
+        else:
+            if not user.is_verified:
+                user.is_verified = True
+                db.session.commit()
+
+        # Step 6: Login
+        login_user(user)
+        flash("Logged in successfully with Google", "success")
+
+        return redirect(url_for("auth.home"))
+
+    except Exception as e:
+        current_app.logger.error(f"Google Callback Error: {e}")
+        current_app.logger.error(traceback.format_exc())
+        flash("Google authentication failed.", "danger")
+        return redirect(url_for("auth.login"))
+
 
 @bp.route("/login/github") 
 def login_github():

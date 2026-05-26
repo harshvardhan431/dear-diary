@@ -4,13 +4,14 @@ from wtforms.validators import DataRequired,Length,ValidationError,Email,EqualTo
 from app.models import User
 class SignupForm(FlaskForm):
     name=StringField("Name",validators=[DataRequired(message="name is compulsory"),Length(min=5,message="name must be five characters")],render_kw={"placeholder":"enter your name "})
-    age=IntegerRangeField("Age",validators=[DataRequired(),NumberRange(min=5,max=80)],render_kw={"min":5,"max":80,"step":1})
+    age=IntegerField("Age",validators=[DataRequired(),NumberRange(min=5,max=80)],render_kw={"min":5,"max":80,"step":1})
     email=EmailField("Email",validators=[DataRequired(),Email()],render_kw={"placeholder":"enter your email"})
     password=PasswordField("Password",validators=[DataRequired()],render_kw={"placeholder":"enter a secure password"})
     recheck_password=PasswordField("Password",validators=[DataRequired(),EqualTo('password',message="password must be same")],render_kw={"placeholder":"enter the same passoword"})
     submit = SubmitField("Sign Up")
     def validate_email(self, email):#without this self the python crashes ,python always passes the object as argument, **self is form and email means email field
-     if User.query.filter_by(email=email.data).first(): #here email.data is the email given by user 
+     user=User.query.filter_by(email=email.data).first()
+     if user.is_verified and user: #here email.data is the email given by user 
          raise ValidationError("Email already registered")
      
 class LoginupForm(FlaskForm):

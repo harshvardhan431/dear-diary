@@ -12,7 +12,7 @@ def setup_logger(app): #this connect our app to logging system
     file_handler = RotatingFileHandler(
         'logs/app.log', maxBytes=10240, backupCount=5
     )#changes the file size and prevents disk overload
-
+    file_handler.mode='w'
     file_handler.setLevel(logging.INFO) #this sets the level this means the file stores info,warning,error
 
     formatter = logging.Formatter(
@@ -27,7 +27,7 @@ def setup_logger(app): #this connect our app to logging system
 
     error_handler.setLevel(logging.ERROR)#error,critical are stored here
     error_handler.setFormatter(formatter)#same format is applied for this file too
-
+    error_handler.mode='w'
     app.logger.addHandler(file_handler)#this addhangler help the flask to know where to save and how to save them
     app.logger.addHandler(error_handler)
 
