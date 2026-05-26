@@ -181,8 +181,8 @@ def google_callback():
             return redirect(url_for("auth.login"))
 
         # Step 3: Parse ID token
-        user_info = oauth.google.parse_id_token(token, nonce=nonce)
-        current_app.logger.info(f"User info: {user_info}")
+        user_info = oauth.google.userinfo(token=token)
+       # current_app.logger.info(f"User info: {user}")
 
         # Step 4: Validate email
         email = user_info.get("email")
